@@ -55,8 +55,8 @@ router.post('/login', async (req, res, next) => {
 });
 
 // Protected Route
-router.get('/protected', auth.verifyToken, (req, res, next) => {
-  res.status(200).json({ acess: 'Protected Routes' });
+router.get('/dashboard', auth.verifyToken, (req, res, next) => {
+  res.status(200).json({ acess: 'Dashboard Accessed...!' });
 });
 
 module.exports = router;
