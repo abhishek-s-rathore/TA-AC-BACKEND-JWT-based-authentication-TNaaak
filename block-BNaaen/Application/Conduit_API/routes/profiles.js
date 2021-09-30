@@ -8,7 +8,7 @@ router.get('/:username', auth.authorizeOptional, async (req, res, next) => {
   var id = req.user.userId;
   var username = req.params.username;
   try {
-    var user = await User.findOne({ username });
+    var user = await User.findOne({ username: username });
     if (user) {
       return res.status(201).json({ profile: user.displayUser(id) });
     } else {
@@ -37,12 +37,20 @@ router.post('/:username/follow', async (req, res, next) => {
       user1.username !== user2.username &&
       !user2.followingList.includes(user1.id)
     ) {
-      user2 = await User.findByIdAndUpdate(user2.id, {
-        $push: { followingList: user1.id },
-      });
-      user1 = await User.findByIdAndUpdate(user1.id, {
-        $push: { followersList: user2.id },
-      });
+      user2 = await User.findByIdAndUpdate(
+        user2.id,
+        {
+          $push: { followingList: user1.id },
+        },
+        { new: true }
+      );
+      user1 = await User.findByIdAndUpdate(
+        user1.id,
+        {
+          $push: { followersList: user2.id },
+        },
+        { new: true }
+      );
       return res.status(201).json({ user: user1.displayUser(user2.id) });
     } else {
       return res
@@ -64,12 +72,20 @@ router.delete('/:username/follow', async (req, res, next) => {
     }
     var user2 = await User.findById(req.user.userId);
     if (user2.followingList.includes(user1.id)) {
-      user2 = await User.findByIdAndUpdate(user2.id, {
-        $pull: { followingList: user1.id },
-      });
-      user1 = await User.findByIdAndUpdate(user1.id, {
-        $pull: { followersList: user2.id },
-      });
+      user2 = await User.findByIdAndUpdate(
+        user2.id,
+        {
+          $pull: { followingList: user1.id },
+        },
+        { new: true }
+      );
+      user1 = await User.findByIdAndUpdate(
+        user1.id,
+        {
+          $pull: { followersList: user2.id },
+        },
+        { new: true }
+      );
       return res.status(200).json({ user: user1.displayUser(user2.id) });
     } else {
       return res

@@ -22,7 +22,7 @@ router.get('/', async (req, res, next) => {
 router.put('/', async (req, res, next) => {
   let id = req.user.userId;
   try {
-    user = await User.findByIdAndUpdate(id, req.body.user);
+    user = await User.findByIdAndUpdate(id, req.body.user, { new: true });
     return res.status(201).json({ user: user.displayUser(id) });
   } catch (error) {
     next(error);
