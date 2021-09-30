@@ -37,11 +37,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Using the routes
 app.use('/api/v1', indexRouter);
-app.use('api/v1/users', usersRouter);
-app.use('api/v1/articles', articlesRouter);
-app.use('api/v1/profiles', profilesRouter);
-app.use('api/v1/tags', tagsRouter);
-app.use('api/v1/user', userRouter);
+app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/articles', articlesRouter);
+app.use('/api/v1/profiles', profilesRouter);
+app.use('/api/v1/tags', tagsRouter);
+app.use('/api/v1/user', userRouter);
 
 // Catch 404 and forward them to error handler
 app.use(function (req, res, next) {

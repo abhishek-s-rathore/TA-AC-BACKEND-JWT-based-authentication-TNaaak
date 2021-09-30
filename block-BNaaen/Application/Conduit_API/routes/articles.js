@@ -18,13 +18,11 @@ router.get('/feed', auth.verifyToken, async (req, res, next) => {
   }
   try {
     let result = await User.findById(req.user.userId).distinct('followingList');
-    console.log(result);
     let articles = await Article.find({ author: { $in: result } })
       .populate('author')
       .limit(Number(limit))
       .skip(Number(skip))
       .sort({ createdAt: -1 });
-    console.log(articles);
     res.status(200).json({
       articles: articles.map((art) => {
         return art.resultArticle(req.user.userId);
@@ -37,19 +35,21 @@ router.get('/feed', auth.verifyToken, async (req, res, next) => {
 });
 
 //List Articles  (Optional Authentication)
+// Doubt to ask
 router.get('/', auth.authorizeOptional, async (req, res, next) => {
   let id = req.user ? req.user.userId : false;
   var limit = 20;
   var skip = 0;
-  var tagList = null;
-  var author = null;
+  var tag = null;
+  var authorName = null;
   var favorited = null;
+  var author;
 
   var tags = await Article.find({}).distinct('tagList');
   var authors = await User.find({}).distinct('_id');
 
   if (req.query.tag) {
-    tagList = req.query.tag;
+    tag = req.query.tag;
   }
 
   if (req.query.limit) {
@@ -61,7 +61,7 @@ router.get('/', auth.authorizeOptional, async (req, res, next) => {
   }
 
   if (req.query.author) {
-    var authorName = req.query.author;
+    authorName = req.query.author;
     var user = await User.findOne({ username: authorName });
     if (!user) {
       return res
@@ -73,16 +73,16 @@ router.get('/', auth.authorizeOptional, async (req, res, next) => {
 
   try {
     if (req.query.favorited) {
-      console.log('2');
-      var favorited = req.query.favorited;
+      favorited = req.query.favorited;
       var user = await User.findOne({ username: favorited });
       if (!user) {
         return res
           .status(400)
           .json({ errors: { body: 'There is no such result' } });
       }
+
       var articles = await Article.find({
-        tagList: !tagList ? { $in: tags } : tagList,
+        tagList: !tag ? { $in: tags } : tag,
         favoriteList: user.id,
         author: !author ? { $in: authors } : author,
       })
@@ -99,7 +99,7 @@ router.get('/', auth.authorizeOptional, async (req, res, next) => {
     } else if (!req.query.favorited) {
       console.log('yes');
       var articles = await Article.find({
-        tagList: !tagList ? { $in: tags } : tagList,
+        tagList: !tag ? { $in: tags } : tag,
         author: !author ? { $in: authors } : author,
       })
         .populate('author')
@@ -116,41 +116,6 @@ router.get('/', auth.authorizeOptional, async (req, res, next) => {
       return res
         .status(400)
         .json({ errors: { body: 'No results for the search' } });
-    }
-  } catch (error) {
-    next(error);
-  }
-});
-
-//Update Article   (Authenticated)
-router.put('/:slug/update', auth.verifyToken, async (req, res, next) => {
-  console.log('hey hey hey');
-  let slug = req.params.slug;
-  if (req.body.article.title) {
-    req.body.article.slug = slugger(req.body.article.title, {
-      replacement: '-',
-    });
-  }
-
-  try {
-    let article = await Article.findOne({ slug });
-    if (!article) {
-      return res
-        .status(400)
-        .json({ errors: { body: 'Theres is no such article' } });
-    }
-    if (req.user.userId == article.author) {
-      article = await Article.findOneAndUpdate(
-        { slug },
-        req.body.article
-      ).populate('author');
-      return res
-        .status(200)
-        .json({ article: article.resultArticle(req.user.userId) });
-    } else {
-      return res
-        .status(403)
-        .json({ error: { body: ['Not Authorized to perform this action'] } });
     }
   } catch (error) {
     next(error);
@@ -195,12 +160,10 @@ router.put('/:slug', auth.verifyToken, async (req, res, next) => {
         .status(400)
         .json({ errors: { body: 'Theres is no such article' } });
     }
-    // console.log(req.user.userId, article.author);
     if (req.user.userId == article.author) {
-      article = await Article.findOneAndUpdate(
-        { slug },
-        req.body.article
-      ).populate('author');
+      article = await Article.findOneAndUpdate({ slug }, req.body.article, {
+        new: true,
+      }).populate('author');
       return res
         .status(200)
         .json({ article: article.resultArticle(req.user.userId) });
@@ -214,7 +177,7 @@ router.put('/:slug', auth.verifyToken, async (req, res, next) => {
   }
 });
 
-//delete article  (Authenticated)
+//Delete Article  (Authenticated)
 router.delete('/:slug', auth.verifyToken, async (req, res, next) => {
   let slug = req.params.slug;
   try {
@@ -237,7 +200,8 @@ router.delete('/:slug', auth.verifyToken, async (req, res, next) => {
     next(error);
   }
 });
-//Add Comments to an Article  (Authenticated)
+
+//Add Comments To An Article  (Authenticated)
 router.post('/:slug/comments', auth.verifyToken, async (req, res, next) => {
   let slug = req.params.slug;
   try {
@@ -263,7 +227,7 @@ router.post('/:slug/comments', auth.verifyToken, async (req, res, next) => {
   }
 });
 
-//Get Comments from an Article   (Optional Authentication)
+//Get Comments From An Article   (Optional Authentication)
 router.get(
   '/:slug/comments',
   auth.authorizeOptional,
